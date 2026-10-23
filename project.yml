@@ -1,0 +1,126 @@
+name: AppTrafficMonitor
+options:
+  bundleIdPrefix: com.apptrafficmonitor
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  AppTrafficMonitorKit:
+    path: Modules
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.1.0"
+
+configFiles:
+  Debug: Config/Shared.xcconfig
+  Release: Config/Shared.xcconfig
+
+targets:
+  AppTrafficMonitor:
+    type: application
+    platform: macOS
+    sources:
+      - path: App/Sources
+    dependencies:
+      # D 线（2026-10-19 用户决策）：Clash 维度先行，app 暂不内嵌系统扩展
+      # （无有效签名链时内嵌 NEFilter 扩展会触发 XProtect 删除）。
+      # TrafficFilterExtension target 保留，签名解决后恢复 embed。
+      - package: AppTrafficMonitorKit
+        products:
+          - SharedContracts
+          - StatsCore
+          - Storage
+          - MihomoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.apptrafficmonitor.mac
+        PRODUCT_NAME: AppTrafficMonitor
+        INFOPLIST_FILE: App/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        ENABLE_HARDENED_RUNTIME: "YES"
+        # 容器 app 不携带受限 entitlement（Apple 官样例口径：仅扩展持有）。
+        # 当前构建期不签名；开发与分发签名需单独配置，见 Config/Shared.xcconfig。
+        CODE_SIGNING_ALLOWED: "NO"
+
+  TrafficFilterExtension:
+    type: system-extension
+    platform: macOS
+    sources:
+      - path: Extension/Sources
+    dependencies:
+      - package: AppTrafficMonitorKit
+        products:
+          - SharedContracts
+          - StatsCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.apptrafficmonitor.mac.TrafficFilterExtension
+        PRODUCT_NAME: TrafficFilterExtension
+        INFOPLIST_FILE: Extension/Info.plist
+        GENERATE_INFOPLIST_FILE: "NO"
+        CODE_SIGN_ENTITLEMENTS: Extension/TrafficFilterExtension.entitlements
+        ENABLE_HARDENED_RUNTIME: "YES"
+        # 同上（T02 实测结论）：构建期不签名。
+        CODE_SIGNING_ALLOWED: "NO"
+
+  LogicTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/LogicTests
+    dependencies:
+      - package: AppTrafficMonitorKit
+        products:
+          - SharedContracts
+          - StatsCore
+          - Storage
+          - MihomoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.apptrafficmonitor.LogicTests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+
+  mihomo-probe:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Tools/mihomo-probe
+    dependencies:
+      - package: AppTrafficMonitorKit
+        products:
+          - MihomoAdapter
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.apptrafficmonitor.mihomo-probe
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+
+schemes:
+  AppTrafficMonitor:
+    build:
+      targets:
+        AppTrafficMonitor: all
+  MihomoProbe:
+    build:
+      targets:
+        mihomo-probe: all
+  Logic:
+    build:
+      targets:
+        LogicTests: [test]
+    test:
+      targets:
+        - LogicTests

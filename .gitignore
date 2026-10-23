@@ -1,0 +1,43 @@
+# Xcode / 构建产物
+build/
+DerivedData/
+.build/
+.swiftpm/
+**/-Xcc/
+xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+
+# 本地签名与账号参数（不入库，见 Config/Local.xcconfig.example）
+Config/Local.xcconfig
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+
+# 本地流量数据库（可能包含真实应用、域名及访问记录）
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
+*.db
+*.db-shm
+*.db-wal
+
+# 系统杂物
+.DS_Store
+
+# 本地工具、会话及可视化产物
+.zcode/
+.archify/
+.codex/
+.agents/

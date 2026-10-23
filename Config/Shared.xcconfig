@@ -1,0 +1,12 @@
+// 共享构建配置。个人团队参数仅写入被 Git 忽略的 Local.xcconfig。
+#include? "Local.xcconfig"
+
+// 当前主应用不内嵌系统扩展，构建期签名开关由 project.yml 配置。
+// 系统扩展开发与正式分发需要各自有效的签名身份、能力授权和 provisioning profile。
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = Apple Development
+PROVISIONING_PROFILE =
+PROVISIONING_PROFILE_SPECIFIER =
+
+// 当前仅验证 Apple Silicon；Intel 与 universal 分发需独立验收。
+EXCLUDED_ARCHS[sdk=macosx*] = x86_64
