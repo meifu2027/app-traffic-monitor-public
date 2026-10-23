@@ -1,0 +1,62 @@
+name: Build and Release macOS
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-arm64
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Inspect Xcode environment
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Run tests
+        run: make test
+
+      - name: Build DMG
+        run: make CONFIG=Release dmg
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AppTrafficMonitor-macOS-arm64
+          path: build/AppTrafficMonitor-*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download DMG artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AppTrafficMonitor-macOS-arm64
+          path: dist
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.dmg \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --verify-tag
